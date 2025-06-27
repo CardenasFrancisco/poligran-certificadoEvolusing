@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Certificado</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+  <div class="wrapper">
+    <header>
+      <img src="{{ url_for('static', filename='Logo.svg') }}" alt="Logo de la institución">
+    </header>
+
+    <main>
+      <section class="alerta">
+        <div class="alerta-contenido">
+          <h4>Importante</h4>
+          <p>
+            Verifique que el documento que usted tiene <strong>coincide</strong> con el que se ve en este sitio.
+            Revise que el <strong>número de páginas</strong> sea el mismo y que los <strong>datos</strong> 
+            son iguales.
+          </p>
+        </div>
+      </section>
+
+      <section class="container">
+        <div class="pdf-viewer">
+          <div class="controls">
+            <button id="prev" aria-label="Página anterior"><i class="fas fa-caret-left"></i></button>
+            <span class="page-info">Página <span id="page_num">1</span> de <span id="page_count">?</span></span>
+            <button id="next" aria-label="Página siguiente"><i class="fas fa-caret-right"></i></button>
+          </div>
+          <canvas id="the-canvas"></canvas>
+        </div>
+
+        <div class="info-box">
+          <h2>Detalles del documento</h2>
+          <div class="alert"><i class="fas fa-check-circle"></i> Documento certificado</div>
+          <div class="detalle"><strong>ACTA</strong> 593</div>
+          <div class="detalle"><strong>NOMBRE</strong> Yessenia Esperanza Albarracin Corredor</div>
+          <div class="detalle"><strong>IDENTIFICACION</strong> 1116547210</div>
+          <div class="detalle"><strong>TITULO</strong> Especialista en Gerencia de la Seguridad y Salud en el Trabajo</div>
+          <div class="detalle"><strong>FECHA</strong> 31 de agosto del 2023</div>
+          <div class="detalle"><strong>LIBRO</strong> 20</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <section class="acciones">
+    <div class="wrapper">
+      <h3>Acciones</h3>
+      <div class="botones-flex">
+        <a href="/descargar" class="btn-block btn-outline-success">
+          <i class="fas fa-file-pdf" style="color: red;"></i> Descargar PDF
+        </a>
+        <a href="/trazabilidad" class="btn-block btn-outline-primary">
+          <i class="fas fa-eye" style="color: black;"></i> Trazabilidad
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- PDF.js -->
+  <script src="https://mozilla.github.io/pdf.js/build/pdf.mjs" type="module"></script>
+  <script type="module">
+    const url = "/static/documento.pdf";
+    const { pdfjsLib } = globalThis;
+    pdfjsLib.GlobalWorkerOptions.workerSrc = "https://mozilla.github.io/pdf.js/build/pdf.worker.mjs";
+
+    let pdfDoc = null,
+        pageNum = 1,
+        pageRendering = false,
+        pageNumPending = null;
+
+    const scale = 1.3;
+    const canvas = document.getElementById("the-canvas");
+    const ctx = canvas.getContext("2d");
+
+    function renderPage(num) {
+      pageRendering = true;
+      pdfDoc.getPage(num).then(function(page) {
+        const viewport = page.getViewport({ scale });
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
+
+        const renderContext = {
+          canvasContext: ctx,
+          viewport: viewport,
+        };
+
+        const renderTask = page.render(renderContext);
+        renderTask.promise.then(function () {
+          pageRendering = false;
+          if (pageNumPending !== null) {
+            renderPage(pageNumPending);
+            pageNumPending = null;
+          }
+        });
+      });
+
+      document.getElementById("page_num").textContent = num;
+    }
+
+    function queueRenderPage(num) {
+      if (pageRendering) {
+        pageNumPending = num;
+      } else {
+        renderPage(num);
+      }
+    }
+
+    document.getElementById("prev").addEventListener("click", () => {
+      if (pageNum <= 1) return;
+      pageNum--;
+      queueRenderPage(pageNum);
+    });
+
+    document.getElementById("next").addEventListener("click", () => {
+      if (pageNum >= pdfDoc.numPages) return;
+      pageNum++;
+      queueRenderPage(pageNum);
+    });
+
+    pdfjsLib.getDocument(url).promise.then(function (pdfDoc_) {
+      pdfDoc = pdfDoc_;
+      document.getElementById("page_count").textContent = pdfDoc.numPages;
+      renderPage(pageNum);
+    }).catch(function(error) {
+      canvas.outerHTML = "<p>No se pudo cargar el documento PDF.</p>";
+      console.error("Error cargando PDF:", error);
+    });
+  </script>
+  <footer class="footer">
+  <div class="footer-wrapper">
+    <div class="footer-logo-text">
+      <!-- Logo + copyright -->
+      <div class="footer-logo-block">
+        <img src="/static/30.png" alt="Logo" class="footer-logo">
+        <p class="copy-under-logo">© 2019-2020.</p>
+      </div>
+      
+      <!-- Información a la derecha del logo -->
+      <div class="footer-info">
+        <p><strong>Flujos inteligentes</strong></p>
+        <p> <img src="{{ url_for('static', filename='mundo.png') }}" alt="Ubicación" style="width:18px; height:18px; vertical-align:middle; margin-right:6px;"><strong>Ubicación:</strong> Bogotá - Colombia</p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+
+
+</body>
+</html>
+
+
+
+
